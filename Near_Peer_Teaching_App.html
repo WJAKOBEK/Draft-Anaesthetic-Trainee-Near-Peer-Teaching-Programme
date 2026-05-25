@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Near-Peer Anaesthesia Teaching — Random Topic Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --navy: #1F3864;
+    --blue: #2E75B6;
+    --light-blue: #D6E4F7;
+    --green: #217346;
+    --light-green: #E8F5E9;
+    --orange: #C55A11;
+    --purple: #7030A0;
+    --amber: #FFC000;
+    --grey: #F5F7FA;
+    --border: #D0D7E3;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--grey); color: #222; min-height: 100vh; position: relative; overflow-x: hidden; }
+
+  /* Anaesthesia background icons */
+  .bg-icons {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .bg-icon {
+    position: absolute;
+    font-size: 3rem;
+    opacity: 0.07;
+    user-select: none;
+    line-height: 1;
+  }
+
+  header {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+    color: white; padding: 28px 24px 20px; text-align: center;
+    box-shadow: 0 4px 16px rgba(31,56,100,0.3);
+  }
+  header h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: 0.02em; }
+  header p { margin-top: 6px; opacity: 0.85; font-size: 0.95rem; }
+
+  .container { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 24px 16px 40px; }
+
+  .card {
+    background: white; border-radius: 12px; padding: 28px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 20px;
+    border: 1px solid var(--border);
+  }
+
+  .card h2 { font-size: 1.15rem; color: var(--navy); margin-bottom: 16px; font-weight: 700; }
+
+  /* Category filter */
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .filter-btn {
+    padding: 6px 14px; border-radius: 20px; border: 2px solid transparent;
+    font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    background: #eee; color: #444;
+  }
+  .filter-btn.active { border-color: var(--blue); background: var(--light-blue); color: var(--navy); }
+  .filter-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+
+  /* Roll button */
+  .roll-btn {
+    display: block; width: 100%; padding: 18px;
+    background: linear-gradient(135deg, var(--navy), var(--blue));
+    color: white; border: none; border-radius: 10px; font-size: 1.3rem;
+    font-weight: 700; cursor: pointer; letter-spacing: 0.03em;
+    transition: all 0.2s; box-shadow: 0 4px 14px rgba(31,56,100,0.35);
+  }
+  .roll-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(31,56,100,0.45); }
+  .roll-btn:active { transform: translateY(0); }
+
+  /* Topic result */
+  .topic-result {
+    display: none; margin-top: 20px; padding: 24px;
+    border-radius: 10px; border: 2px solid var(--blue);
+    background: linear-gradient(135deg, #F0F7FF, #E8F0FE);
+    animation: pop 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .topic-result.visible { display: block; }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.92) translateY(10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .topic-number { font-size: 0.85rem; color: var(--blue); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+  .topic-category { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 700; margin: 4px 0 10px; }
+  .topic-name { font-size: 1.5rem; font-weight: 700; color: var(--navy); line-height: 1.3; }
+  .topic-resource { margin-top: 12px; font-size: 0.9rem; color: #555; }
+  .topic-resource a { color: var(--blue); font-weight: 600; }
+
+  /* Session timer */
+  .timer-section { margin-top: 20px; }
+  .timer-display {
+    font-size: 2.8rem; font-weight: 700; text-align: center;
+    color: var(--navy); font-variant-numeric: tabular-nums; letter-spacing: 0.05em;
+    padding: 12px; background: var(--grey); border-radius: 8px;
+  }
+  .timer-display.warning { color: var(--orange); }
+  .timer-display.over { color: #C00; }
+  .timer-btns { display: flex; gap: 10px; margin-top: 10px; }
+  .timer-btn {
+    flex: 1; padding: 10px; border: none; border-radius: 8px;
+    font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.15s;
+  }
+  .timer-btn.start { background: var(--green); color: white; }
+  .timer-btn.pause { background: var(--orange); color: white; }
+  .timer-btn.reset  { background: #888; color: white; }
+  .timer-btn:hover { filter: brightness(1.1); }
+
+  /* Framework phases */
+  .phase {
+    border-radius: 8px; overflow: hidden; margin-bottom: 14px;
+    border: 1px solid var(--border);
+  }
+  .phase-header {
+    padding: 12px 16px; font-weight: 700; font-size: 0.95rem;
+    color: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+  }
+  .phase-body { padding: 0; max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+  .phase-body.open { max-height: 500px; }
+  .phase-body ul { list-style: none; padding: 14px 16px; }
+  .phase-body li {
+    display: flex; gap: 10px; padding: 8px 0;
+    border-bottom: 1px solid #F0F0F0; font-size: 0.9rem; line-height: 1.5;
+  }
+  .phase-body li:last-child { border-bottom: none; }
+  .step-num {
+    min-width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.8rem; color: white; flex-shrink: 0;
+  }
+  .chevron { transition: transform 0.3s; }
+  .chevron.open { transform: rotate(180deg); }
+
+  /* Checklist */
+  .checklist label {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 8px 0; border-bottom: 1px solid #F0F0F0; cursor: pointer; font-size: 0.9rem;
+  }
+  .checklist label:last-child { border-bottom: none; }
+  .checklist input[type=checkbox] { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--blue); flex-shrink: 0; }
+  .checklist label.checked span { text-decoration: line-through; color: #aaa; }
+
+  /* Session log */
+  .log-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .log-form label { font-size: 0.82rem; font-weight: 600; color: #555; display: block; margin-bottom: 4px; }
+  .log-form input, .log-form select, .log-form textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 0.9rem; font-family: inherit;
+  }
+  .log-form .full { grid-column: 1 / -1; }
+  .save-btn {
+    grid-column: 1 / -1; padding: 12px; background: var(--green);
+    color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .save-btn:hover { filter: brightness(1.1); }
+
+  /* History */
+  .history-item {
+    padding: 12px; border-radius: 8px; background: var(--grey);
+    border: 1px solid var(--border); margin-bottom: 8px; font-size: 0.88rem;
+  }
+  .history-item strong { color: var(--navy); }
+  .history-empty { color: #999; font-style: italic; text-align: center; padding: 20px 0; }
+
+  /* Progress bar */
+  .progress-bar { height: 10px; background: #E0E0E0; border-radius: 5px; overflow: hidden; margin-top: 8px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--green)); border-radius: 5px; transition: width 0.4s ease; }
+
+  /* Category badge colours */
+  .cat-QRH { background: #F5CBA7; color: #7B3800; }
+  .cat-ObsQRH { background: #D7BDE2; color: #6C1D8C; }
+  .cat-NYSORA { background: #A9DFBF; color: #1E5631; }
+  .cat-DAS { background: #AED6F1; color: #1A4F72; }
+  .cat-AAGBI { background: #FAD7A0; color: #784212; }
+  .cat-ALS { background: #F1948A; color: #7B241C; }
+  .cat-Emergency { background: #FDEBD0; color: #6E2C00; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .stat-box { text-align: center; padding: 14px; background: var(--grey); border-radius: 8px; border: 1px solid var(--border); }
+  .stat-num { font-size: 2rem; font-weight: 700; color: var(--navy); }
+  .stat-label { font-size: 0.78rem; color: #666; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div class="bg-icons" id="bgIcons"></div>
+
+<header>
+  <h1>🎲 Near-Peer Anaesthesia Teaching</h1>
+  <p>Random Topic Generator — 67 topics across QRH, ObsQRH, NYSORA, DAS, AAGBI, ALS & Emergency Airway</p>
+</header>
+
+<div class="container">
+
+  <!-- TOPIC GENERATOR -->
+  <div class="card">
+    <h2>🎯 Select a Random Topic</h2>
+
+    <div class="filters" id="filters">
+      <button class="filter-btn active" data-cat="ALL">All Categories</button>
+      <button class="filter-btn" data-cat="QRH">QRH</button>
+      <button class="filter-btn" data-cat="ObsQRH">ObsQRH</button>
+      <button class="filter-btn" data-cat="NYSORA">NYSORA</button>
+      <button class="filter-btn" data-cat="DAS">DAS</button>
+      <button class="filter-btn" data-cat="AAGBI">AAGBI</button>
+      <button class="filter-btn" data-cat="ALS">ALS</button>
+      <button class="filter-btn" data-cat="Emergency">NTSP</button>
+    </div>
+
+    <button class="roll-btn" onclick="rollTopic()">🎲 &nbsp; GENERATE RANDOM TOPIC &nbsp; 🎲</button>
+
+    <div class="topic-result" id="topicResult">
+      <div class="topic-number" id="topicNumber">Topic #</div>
+      <div><span class="topic-category" id="topicCategory"></span></div>
+      <div class="topic-name" id="topicName"></div>
+      <div class="topic-resource" id="topicResource"></div>
+    </div>
+  </div>
+
+  <!-- SESSION TIMER -->
+  <div class="card" id="timerCard" style="display:none">
+    <h2>⏱ Session Timer</h2>
+    <div class="timer-display" id="timerDisplay">00:00</div>
+    <div class="timer-btns">
+      <button class="timer-btn start" onclick="startTimer()" id="startBtn">▶ Start</button>
+      <button class="timer-btn pause" onclick="pauseTimer()" id="pauseBtn">⏸ Pause</button>
+      <button class="timer-btn reset" onclick="resetTimer()">↺ Reset</button>
+    </div>
+    <p style="font-size:0.8rem;color:#888;margin-top:8px;text-align:center">Target: 15–30 minutes. Timer turns orange at 25 min, red at 30 min.</p>
+  </div>
+
+  <!-- TEACHING FRAMEWORK -->
+  <div class="card" id="frameworkCard" style="display:none">
+    <h2>📋 Suggested Session Outline</h2>
+
+    <div class="phase">
+      <div class="phase-header" style="background:#2E75B6" onclick="togglePhase('p1')">
+        <span>Step 1 — State the Topic / Guideline</span>
+        <span class="chevron" id="p1-chevron">▼</span>
+      </div>
+      <div class="phase-body" id="p1-body">
+        <ul>
+          <li><span class="step-num" style="background:#2E75B6">1</span>Read the topic title clearly and share the relevant guideline or QRH with all attendees so everyone is working from the same resource.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" style="background:#217346" onclick="togglePhase('p2')">
+        <span>Step 2 — Identify Current Understanding</span>
+        <span class="chevron" id="p2-chevron">▼</span>
+      </div>
+      <div class="phase-body" id="p2-body">
+        <ul>
+          <li><span class="step-num" style="background:#217346">2</span>Ask the group: <em>"What do you already know about this topic?"</em> — draw out prior knowledge before teaching begins.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" style="background:#C55A11" onclick="togglePhase('p3')">
+        <span>Step 3 — Walk Through the Guideline / Algorithm</span>
+        <span class="chevron" id="p3-chevron">▼</span>
+      </div>
+      <div class="phase-body" id="p3-body">
+        <ul>
+          <li><span class="step-num" style="background:#C55A11">3</span>Work through the guideline or algorithm step by step. Pause at key decision points and ask attendees to predict the next step before revealing it.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" style="background:#7030A0" onclick="togglePhase('p4')">
+        <span>Step 4 — Highlight Key Points & Share Experience</span>
+        <span class="chevron" id="p4-chevron">▼</span>
+      </div>
+      <div class="phase-body" id="p4-body">
+        <ul>
+          <li><span class="step-num" style="background:#7030A0">4</span>Highlight the most important steps from the resource — including doses, thresholds, and time-critical actions. Share relevant personal clinical experience where appropriate.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" style="background:#C55A11" onclick="togglePhase('p5')">
+        <span>Step 5 — Identify Gaps & Signpost Further Reading</span>
+        <span class="chevron" id="p5-chevron">▼</span>
+      </div>
+      <div class="phase-body" id="p5-body">
+        <ul>
+          <li><span class="step-num" style="background:#C55A11">5</span>Ask: <em>"What was new? What would you look up before seeing this case?"</em> Then signpost a further reading resource — guideline URL, BJA Education article, or Anaesthesia tutorial.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" style="background:#1F3864" onclick="togglePhase('p6')">
+        <span>Step 6 — Log the Session & Request Feedback</span>
+        <span class="chevron" id="p6-chevron">▼</span>
+      </div>
+      <div class="phase-body" id="p6-body">
+        <ul>
+          <li><span class="step-num" style="background:#1F3864">6</span>Complete the session log below and ask attendees to scan the feedback QR code. Feedback responses can be used as ePortfolio evidence for the presenter.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SESSION LOG -->
+  <div class="card" id="logCard" style="display:none">
+    <h2>📝 Log This Session</h2>
+    <div class="log-form">
+      <div>
+        <label>Date</label>
+        <input type="date" id="logDate">
+      </div>
+      <div>
+        <label>Presenter</label>
+        <input type="text" id="logPresenter" placeholder="e.g. Dr Smith CT2">
+      </div>
+      <div>
+        <label>Number of Attendees</label>
+        <input type="number" id="logAttendees" min="1" max="30" placeholder="e.g. 4">
+      </div>
+      <div>
+        <label>Duration (mins)</label>
+        <input type="number" id="logDuration" min="5" max="60" placeholder="e.g. 25">
+      </div>
+      <div class="full" style="background:#F0F7FF;border-radius:8px;padding:14px;border:1px solid #BDD7EE;">
+        <p style="font-size:0.85rem;font-weight:700;color:#1F3864;margin-bottom:4px">📌 Topic (auto-filled)</p>
+        <p style="font-size:0.95rem;color:#333" id="logTopicDisplay">Generate a topic first</p>
+      </div>
+      <button class="save-btn" onclick="logSession()">💾 &nbsp; Log This Session</button>
+    </div>
+  </div>
+
+  <!-- FEEDBACK QR -->
+  <div class="card" id="feedbackCard" style="display:none">
+    <h2>📲 Attendee Feedback</h2>
+    <p style="font-size:0.9rem;color:#555;margin-bottom:16px">Ask attendees to scan the QR code below to complete a short feedback form. Responses are sent directly to the presenter for their ePortfolio.</p>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+      <div id="feedbackQR" style="background:white;padding:14px;border-radius:10px;border:2px solid #D0D7E3;display:inline-block"></div>
+      <p style="font-size:0.82rem;color:#888;text-align:center">RUH Anaesthetics Near-Peer Teaching — Session Feedback<br>Takes approximately 2 minutes to complete</p>
+      <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=slTDN7CF9UeyIge0jXdO43gKNCzwx2JIstMYcpnyaTtURUFWWEpXQ0g1VFdRQVBZWTg4MlZUMzlDVi4u" target="_blank"
+        style="padding:10px 22px;background:#1F3864;color:white;border-radius:8px;font-weight:700;font-size:0.9rem;text-decoration:none">
+        🔗 &nbsp; Open Feedback Form
+      </a>
+    </div>
+  </div>
+
+  <!-- STATISTICS & HISTORY -->
+  <div class="card">
+    <h2>📊 Session Statistics</h2>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Sessions Logged</div></div>
+      <div class="stat-box"><div class="stat-num" id="statUnique">0</div><div class="stat-label">Unique Topics</div></div>
+      <div class="stat-box"><div class="stat-num" id="statPct">0%</div><div class="stat-label">Curriculum Complete</div></div>
+    </div>
+    <div class="progress-bar" style="margin-top:16px"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <p style="font-size:0.78rem;color:#888;text-align:center;margin-top:6px" id="progressLabel">0 / 67 topics covered</p>
+
+    <h2 style="margin-top:20px">🕐 Recent Sessions</h2>
+    <div id="historyList"><p class="history-empty">No sessions logged yet. Generate a topic and record your first session!</p></div>
+
+    <button onclick="exportLog()" style="margin-top:12px;padding:10px 20px;background:#1F3864;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem">⬇ Export Log as CSV</button>
+    <button onclick="clearLog()" style="margin-top:12px;margin-left:10px;padding:10px 20px;background:#888;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem">🗑 Clear All Data</button>
+  </div>
+
+</div>
+
+<script>
+const TOPICS = [
+  // QRH
+  {id:1,  cat:"QRH", name:"Cardiac Arrest",                              resource:"QRH 2-1 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_2-1_Cardiac_arrest_Revised_v1.pdf?ver=2018-07-25-112713-097"},
+  {id:2,  cat:"QRH", name:"Hypoxia",                                     resource:"QRH 2-2 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_2-2_Hypoxia-desaturation-cyanosis_v1.pdf?ver=2018-07-25-112713-097"},
+  {id:3,  cat:"QRH", name:"Increased Airway Pressure",                   resource:"QRH 2-3 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_2-3_Increased_airway_pressure_v1.pdf?ver=2018-07-25-112713-237"},
+  {id:4,  cat:"QRH", name:"Hypotension",                                 resource:"QRH 2-4 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_2-4_Hypotension_v1.pdf?ver=2018-07-25-112713-283"},
+  {id:5,  cat:"QRH", name:"Hypertension",                                resource:"QRH 2-5 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_2-5_Hypertension_v1.pdf?ver=2018-07-25-112713-283"},
+  {id:6,  cat:"QRH", name:"Bradycardia",                                 resource:"QRH 2-6 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_2-6_Bradycardia_v1.pdf?ver=2018-07-25-112713-830"},
+  {id:7,  cat:"QRH", name:"Tachycardia",                                 resource:"QRH 2-7 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_2-7_Tachycardia_v1.pdf?ver=2018-07-25-112713-813"},
+  {id:8,  cat:"QRH", name:"Peri-operative Hyperthermia",                 resource:"QRH 2-8 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_2-8_Perioperative_hyperthermia_v1.pdf?ver=2018-07-25-112713-987"},
+  {id:9,  cat:"QRH", name:"Anaphylaxis",                                 resource:"QRH 3-1 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_3-1_Anaphylaxis_v5.pdf?ver=2022-04-12-124225-493"},
+  {id:10, cat:"QRH", name:"Massive Blood Loss",                          resource:"QRH 3-2 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_3-2_Massive_blood_loss_v2.pdf?ver=2018-07-25-112713-610"},
+  {id:11, cat:"QRH", name:"CICO",                                        resource:"QRH 3-3 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_3-3_Cant_intubate_cant_oxygenate_CICO_v1.pdf?ver=2018-07-25-112713-643"},
+  {id:12, cat:"QRH", name:"Bronchospasm",                                resource:"QRH 3-4 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_3-4_Bronchospasm_v3_June%202023.pdf?ver=2023-06-23-141010-760"},
+  {id:13, cat:"QRH", name:"Circulatory Embolus",                         resource:"QRH 3-5 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_3-5_Circulatory_embolus_v1.pdf?ver=2018-07-25-112714-063"},
+  {id:14, cat:"QRH", name:"Laryngospasm and Stridor",                    resource:"QRH 3-6 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_3-6_Laryngospasm_and_stridor_v1.pdf?ver=2018-07-25-112714-407"},
+  {id:15, cat:"QRH", name:"Patient Fire",                                resource:"QRH 3-7 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_3-7_Patient_fire_v1.pdf?ver=2018-07-25-112714-097"},
+  {id:16, cat:"QRH", name:"Malignant Hyperthermia",                      resource:"QRH 3-8 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_3-8_Malignant_hyperthermia_crisis_v2.pdf?ver=2021-01-05-141951-520"},
+  {id:17, cat:"QRH", name:"Cardiac Tamponade",                           resource:"QRH 3-9 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_3-9_Cardiac_tamponade_v1.pdf?ver=2018-07-25-112714-300"},
+  {id:18, cat:"QRH", name:"LA Toxicity",                                 resource:"QRH 3-10 — Association of Anaesthetists",         link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_3-10_Local_anaesthetic_toxicity_v2_June%202023.pdf?ver=2023-06-23-141010-760"},
+  {id:19, cat:"QRH", name:"High Central Neuraxial Block",                resource:"QRH 3-11 — Association of Anaesthetists",         link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_3-11_High_central_neuraxial_block_v1.pdf?ver=2018-07-25-112714-517"},
+  {id:20, cat:"QRH", name:"Cardiac Ischaemia",                           resource:"QRH 3-12 — Association of Anaesthetists",         link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_3-12_Cardiac_ischaemia_v2.pdf?ver=2019-08-23-113328-470"},
+  {id:21, cat:"QRH", name:"Neuroprotection following Cardiac Arrest",    resource:"QRH 3-13 — Association of Anaesthetists",         link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_3-13_Neuroprotection_cardiac_arrest_v1.pdf?ver=2018-07-25-112714-707"},
+  {id:22, cat:"QRH", name:"Sepsis",                                      resource:"QRH 3-14 — Association of Anaesthetists",         link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_3-14_Sepsis_v1.pdf?ver=2018-07-25-112714-673"},
+  {id:23, cat:"QRH", name:"Mains Oxygen Failure",                        resource:"QRH 4-1 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_4-1_Mains_oxygen_failure_v1.pdf?ver=2018-07-25-112714-800"},
+  {id:24, cat:"QRH", name:"Mains Electricity Failure",                   resource:"QRH 4-2 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_4-2_Mains_electricity_failure_v1.pdf?ver=2018-07-25-112714-923"},
+  {id:25, cat:"QRH", name:"Emergency Evacuation",                        resource:"QRH 4-3 — Association of Anaesthetists",          link:"https://anaesthetists.org/Portals/0/PDFs/QRH/QRH_4-3_Emergency_evacuation_v1.pdf?ver=2018-07-25-112715-003"},
+  // ObsQRH
+  {id:26, cat:"ObsQRH", name:"Obstetric Cardiac Arrest",                          resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/final-obs-qrh-feb-9th-24-10.pdf"},
+  {id:27, cat:"ObsQRH", name:"Eclampsia",                                          resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/final-obs-qrh-feb-9th-24-11.pdf"},
+  {id:28, cat:"ObsQRH", name:"Severe Pre-Eclampsia",                               resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/oaa-qrh/february-2024/final-obs-qrh-feb-9th-24-12.pdf"},
+  {id:29, cat:"ObsQRH", name:"Altered Mental Status",                              resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/oaa-qrh/june-2024-v1.2/final-obs-qrh-jul-26-24-altered-mental-status.v.1.2.pdf"},
+  {id:30, cat:"ObsQRH", name:"Antepartum Haemorrhage",                             resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/oaa-qrh/february-2024/final-obs-qrh-feb-9th-24-16.pdf"},
+  {id:31, cat:"ObsQRH", name:"Postpartum Haemorrhage",                             resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/oaa-qrh/february-2024/final-obs-qrh-feb-9th-24-17.pdf"},
+  {id:32, cat:"ObsQRH", name:"Severe Hyponatraemia",                               resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/oaa-qrh/february-2024/final-obs-qrh-feb-9th-24-20.pdf"},
+  {id:33, cat:"ObsQRH", name:"Hyponatraemia (not severe)",                         resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/oaa-qrh/february-2024/final-obs-qrh-feb-9th-24-21.pdf"},
+  {id:34, cat:"ObsQRH", name:"DKA",                                                resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/oaa-qrh/february-2024/final-obs-qrh-feb-9th-24-22.pdf"},
+  {id:35, cat:"ObsQRH", name:"High Central Neuraxial Block",                       resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/oaa-qrh/february-2024/final-obs-qrh-feb-9th-24-18.pdf"},
+  {id:36, cat:"ObsQRH", name:"Refractory Anaphylaxis",                             resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/oaa-qrh/february-2024/final-obs-qrh-feb-9th-24-15.pdf"},
+  {id:37, cat:"ObsQRH", name:"Management of Cord Prolapse",                        resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/oaa-qrh/february-2024/final-obs-qrh-feb-9th-24-23.pdf"},
+  {id:38, cat:"ObsQRH", name:"Delayed 2nd Stage Vaginal Breech Birth",             resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/oaa-qrh/february-2024/final-obs-qrh-feb-9th-24-24.pdf"},
+  {id:39, cat:"ObsQRH", name:"Shoulder Dystocia",                                  resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/oaa-qrh/february-2024/final-obs-qrh-feb-9th-24-251---shoulder-d-final-combined.pdf"},
+  {id:40, cat:"ObsQRH", name:"Difficulty Removing Forceps after Unsuccessful Assisted Vaginal Birth", resource:"ObsQRH — OAA", link:"https://www.oaa-anaes.ac.uk/downloads/oaa-qrh/february-2024/final-obs-qrh-feb-9th-24-26.pdf"},
+  {id:41, cat:"ObsQRH", name:"Uterine Inversion",                                  resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/oaa-qrh/february-2024/final-obs-qrh-feb-9th-24-27.pdf"},
+  {id:42, cat:"ObsQRH", name:"Emergency Preterm Birth",                             resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/oaa-qrh/february-2024/final-obs-qrh-feb-9th-24-28.pdf"},
+  {id:43, cat:"ObsQRH", name:"Unexpected Need for Newborn Resuscitation",           resource:"ObsQRH — OAA",   link:"https://www.oaa-anaes.ac.uk/downloads/oaa-qrh/february-2024/final-obs-qrh-feb-9th-24-29.pdf"},
+  // NYSORA / Regional
+  {id:44, cat:"NYSORA", name:"Interscalene Block",         resource:"NYSORA",  link:"https://www.nysora.com/techniques/upper-extremity/intescalene/ultrasound-guided-interscalene-brachial-plexus-block/"},
+  {id:45, cat:"NYSORA", name:"Supraclavicular Block",      resource:"NYSORA",  link:"https://www.nysora.com/topics/regional-anesthesia-for-specific-surgical-procedures/upper-extremity-regional-anesthesia-for-specific-surgical-procedures/anesthesia-and-analgesia-for-elbow-and-forearm-procedures/ultrasound-guided-supraclavicular-brachial-plexus-block/"},
+  {id:46, cat:"NYSORA", name:"Axillary Block",             resource:"NYSORA",  link:"https://www.nysora.com/techniques/upper-extremity/axillary/ultrasound-guided-axillary-brachial-plexus-block/"},
+  {id:47, cat:"NYSORA", name:"Wrist Block",                resource:"NYSORA",  link:"https://www.nysora.com/techniques/upper-extremity/wrist/ultrasound-guided-wrist-block/"},
+  {id:48, cat:"NYSORA", name:"Erector Spinae Plane Block & Rectus Sheath Block", resource:"RCoA Plan A",  link:"https://www.rcoa.ac.uk/sites/default/files/documents/2020-11/Plan%20A%20-%20Upper%20%20Lower%20Limb_A0_FINAL_With%20crop%20marks.pdf"},
+  {id:49, cat:"NYSORA", name:"Transversus Abdominis Plane Block", resource:"NYSORA", link:"https://www.nysora.com/topics/abdomen/ultrasound-guided-transversus-abdominis-plane-quadratus-lumborum-blocks/"},
+  {id:50, cat:"NYSORA", name:"Femoral Nerve Block",        resource:"NYSORA",  link:"https://www.nysora.com/techniques/lower-extremity/ultrasound-guided-femoral-nerve-block/"},
+  {id:51, cat:"NYSORA", name:"Adductor Canal Block",       resource:"NYSORA",  link:"https://www.nysora.com/topics/regional-anesthesia-for-specific-surgical-procedures/lower-extremity-regional-anesthesia-for-specific-surgical-procedures/foot-and-anckle/ultrasound-guided-saphenous-subsartorius-adductor-canal-nerve-block/"},
+  {id:52, cat:"NYSORA", name:"Popliteal Block",            resource:"NYSORA",  link:"https://www.nysora.com/topics/regional-anesthesia-for-specific-surgical-procedures/lower-extremity-regional-anesthesia-for-specific-surgical-procedures/foot-and-anckle/ultrasound-guided-popliteal-sciatic-block/"},
+  {id:53, cat:"NYSORA", name:"Ankle Block",                resource:"NYSORA",  link:"https://www.nysora.com/techniques/ultrasound-guided-ankle-block/"},
+  // DAS
+  {id:54, cat:"DAS", name:"Awake Tracheal Intubation",                              resource:"DAS Guideline 2020",          link:"https://das.uk.com/guidelines/das-guidelines-for-awake-tracheal-intubation-ati-in-adults/"},
+  {id:55, cat:"DAS", name:"Tracheal Intubation in Critically Ill Adults",           resource:"DAS/ICS/FICM Guideline",      link:"https://das.uk.com/guidelines/guidelines-for-the-management-of-tracheal-intubation-in-critically-ill-adults/"},
+  {id:56, cat:"DAS", name:"Airway Management in Suspected or Confirmed C-Spine Injury", resource:"DAS Guideline",         link:"https://das.uk.com/guidelines/cervical-spine-injury/"},
+  {id:57, cat:"DAS", name:"Difficult or Failed Intubation in Obstetrics",           resource:"DAS/OAA Guideline 2015",      link:"https://das.uk.com/guidelines/obstetric_airway_guidelines_2015/"},
+  {id:58, cat:"DAS", name:"Paediatric Difficult Airway",                            resource:"DAS Guideline 2015",          link:"https://das.uk.com/guidelines/paediatric-difficult-airway-guidelines/"},
+  {id:59, cat:"DAS", name:"Management of Tracheal Extubation",                      resource:"DAS Guideline",               link:"https://das.uk.com/guidelines/das-extubation-guidelines1/"},
+  {id:60, cat:"DAS", name:"Unanticipated Difficult Intubation",                     resource:"DAS Guideline",               link:"https://das.uk.com/guidelines/das_intubation_guidelines/"},
+  {id:61, cat:"DAS", name:"Haematoma After Thyroid Surgery / SCOOP",                resource:"DAS Guideline",               link:"https://das.uk.com/guidelines/haematoma/"},
+  // AAGBI
+  {id:62, cat:"AAGBI", name:"Anaesthetic Machine Check", resource:"Association of Anaesthetists 2012", link:"https://www.anaesthetists.org/Portals/0/PDFs/Guidelines%20PDFs/Guideline_checking_anaesthetic_equipment_2012_final.pdf?ver=2018-07-11-163753-647"},
+  // ALS
+  {id:63, cat:"ALS", name:"Adult ALS Algorithm",             resource:"Resuscitation Council UK 2025",  link:"https://www.resus.org.uk/sites/default/files/2025-10/Adult%20ALS%20algorithm%202025.pdf"},
+  {id:64, cat:"ALS", name:"Paediatric ALS Algorithm",        resource:"Resuscitation Council UK 2021",  link:"https://www.resus.org.uk/sites/default/files/2021-04/Paediatric%20ALS%20Algorithm%202021.pdf"},
+  {id:65, cat:"ALS", name:"Adult Traumatic Cardiac Arrest",  resource:"Resuscitation Council UK 2025",  link:"https://www.resus.org.uk/sites/default/files/2025-10/Traumatic%20cardiac%20arrest%20algorithm%202025.pdf"},
+  // Emergency Airway
+  {id:66, cat:"Emergency", name:"Emergency Tracheostomy Management", resource:"National Tracheostomy Safety Project", link:"https://tracheostomy.org.uk/storage/files/Patent%20Airway%20Algorithm.pdf"},
+  {id:67, cat:"Emergency", name:"Emergency Laryngectomy Management", resource:"National Tracheostomy Safety Project", link:"https://tracheostomy.org.uk/storage/files/Laryngectomy%20Algorithm.pdf"},
+];
+
+let selectedCat = 'ALL';
+let currentTopic = null;
+let timerInterval = null;
+let timerSeconds = 0;
+let timerRunning = false;
+let sessionLog = JSON.parse(localStorage.getItem('anaes_sessions') || '[]');
+
+// Filters
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedCat = btn.dataset.cat;
+  });
+});
+
+function rollTopic() {
+  const pool = selectedCat === 'ALL' ? TOPICS : TOPICS.filter(t => t.cat === selectedCat);
+  if (!pool.length) return;
+  
+  currentTopic = pool[Math.floor(Math.random() * pool.length)];
+  
+  document.getElementById('topicNumber').textContent = `Topic #${currentTopic.id} of 67`;
+  const catEl = document.getElementById('topicCategory');
+  catEl.textContent = currentTopic.cat;
+  catEl.className = `topic-category cat-${currentTopic.cat}`;
+  document.getElementById('topicName').textContent = currentTopic.name;
+  
+  const res = document.getElementById('topicResource');
+  if (currentTopic.link) {
+    res.innerHTML = `📖 Resource: <a href="${currentTopic.link}" target="_blank">${currentTopic.resource}</a>`;
+  } else {
+    res.textContent = `📖 Resource: ${currentTopic.resource}`;
+  }
+  
+  const result = document.getElementById('topicResult');
+  result.classList.remove('visible');
+  void result.offsetWidth; // force reflow for animation
+  result.classList.add('visible');
+  
+  // Show other cards
+  document.getElementById('timerCard').style.display = 'block';
+  document.getElementById('frameworkCard').style.display = 'block';
+  document.getElementById('logCard').style.display = 'block';
+  document.getElementById('feedbackCard').style.display = 'block';
+
+  // Auto-fill topic in log
+  document.getElementById('logTopicDisplay').textContent = `#${currentTopic.id} — ${currentTopic.name} (${currentTopic.cat})`;
+
+  // Generate QR code (clear old one first)
+  const qrEl = document.getElementById('feedbackQR');
+  qrEl.innerHTML = '';
+  new QRCode(qrEl, {
+    text: "https://forms.office.com/Pages/ResponsePage.aspx?id=slTDN7CF9UeyIge0jXdO43gKNCzwx2JIstMYcpnyaTtURUFWWEpXQ0g1VFdRQVBZWTg4MlZUMzlDVi4u",
+    width: 200,
+    height: 200,
+    colorDark: "#1F3864",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+  
+  // Reset timer & checklist
+  resetTimer();
+  document.querySelectorAll('.checklist input').forEach(cb => { cb.checked = false; });
+  document.querySelectorAll('.checklist label').forEach(l => l.classList.remove('checked'));
+  
+  // Open phase 1 by default
+  ['p1','p2','p3','p4','p5','p6'].forEach(p => {
+    document.getElementById(`${p}-body`).classList.remove('open');
+    document.getElementById(`${p}-chevron`).classList.remove('open');
+  });
+  togglePhase('p1');
+  
+  document.getElementById('topicResult').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function togglePhase(id) {
+  const body = document.getElementById(`${id}-body`);
+  const chevron = document.getElementById(`${id}-chevron`);
+  body.classList.toggle('open');
+  chevron.classList.toggle('open');
+}
+
+// Timer
+function updateTimerDisplay() {
+  const m = Math.floor(timerSeconds / 60).toString().padStart(2,'0');
+  const s = (timerSeconds % 60).toString().padStart(2,'0');
+  const el = document.getElementById('timerDisplay');
+  el.textContent = `${m}:${s}`;
+  el.className = 'timer-display';
+  if (timerSeconds >= 1800) el.classList.add('over');
+  else if (timerSeconds >= 1500) el.classList.add('warning');
+}
+
+function startTimer() {
+  if (timerRunning) return;
+  timerRunning = true;
+  timerInterval = setInterval(() => { timerSeconds++; updateTimerDisplay(); }, 1000);
+}
+
+function pauseTimer() {
+  timerRunning = false;
+  clearInterval(timerInterval);
+}
+
+function resetTimer() {
+  pauseTimer();
+  timerSeconds = 0;
+  updateTimerDisplay();
+}
+
+function checkItem(cb) {
+  cb.parentElement.classList.toggle('checked', cb.checked);
+}
+
+// Session logging
+const SHEETS_URL = "https://script.google.com/macros/s/AKfycbzya-xHxCtG-dFn5oWivzCBekQcYOQRuzSdrImd7tld1CNMaEhRrRwHiR1LS7RSyI8/exec";
+
+function logSession() {
+  if (!currentTopic) { alert('Please generate a topic first.'); return; }
+  const entry = {
+    id: currentTopic.id,
+    topic: currentTopic.name,
+    category: currentTopic.cat,
+    date: document.getElementById('logDate').value || new Date().toISOString().split('T')[0],
+    presenter: document.getElementById('logPresenter').value || 'Unknown',
+    attendees: document.getElementById('logAttendees').value || '—',
+    duration: document.getElementById('logDuration').value || Math.round(timerSeconds/60),
+    logged: new Date().toISOString()
+  };
+
+  // Save locally
+  sessionLog.unshift(entry);
+  localStorage.setItem('anaes_sessions', JSON.stringify(sessionLog));
+  renderHistory();
+
+  // Send to Google Sheets
+  const btn = document.querySelector('.save-btn');
+  btn.textContent = '⏳  Saving to logbook...';
+  btn.disabled = true;
+
+  fetch(SHEETS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(entry)
+  })
+  .then(() => {
+    btn.textContent = '✅  Saved to logbook!';
+    btn.style.background = '#217346';
+    setTimeout(() => {
+      btn.textContent = '💾  Log This Session';
+      btn.style.background = '';
+      btn.disabled = false;
+    }, 3000);
+  })
+  .catch(() => {
+    btn.textContent = '⚠️  Saved locally (network error)';
+    btn.style.background = '#C55A11';
+    setTimeout(() => {
+      btn.textContent = '💾  Log This Session';
+      btn.style.background = '';
+      btn.disabled = false;
+    }, 3000);
+  });
+}
+
+function renderHistory() {
+  const el = document.getElementById('historyList');
+  if (!sessionLog.length) {
+    el.innerHTML = '<p class="history-empty">No sessions logged yet.</p>';
+    updateStats();
+    return;
+  }
+  el.innerHTML = sessionLog.slice(0,10).map(s => `
+    <div class="history-item">
+      <strong>#${s.id} — ${s.topic}</strong> <span class="topic-category cat-${s.category}" style="padding:2px 8px;border-radius:10px;font-size:0.75rem;font-weight:700">${s.category}</span><br>
+      📅 ${s.date || 'No date'} &nbsp;|&nbsp; 👤 ${s.presenter} &nbsp;|&nbsp; 👥 ${s.attendees} attendees &nbsp;|&nbsp; ⏱ ${s.duration} min
+    </div>
+  `).join('');
+  updateStats();
+}
+
+function updateStats() {
+  const total = sessionLog.length;
+  const unique = new Set(sessionLog.map(s => s.id)).size;
+  const pct = Math.round((unique / 67) * 100);
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statUnique').textContent = unique;
+  document.getElementById('statPct').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = `${unique} / 67 topics covered`;
+}
+
+function exportLog() {
+  if (!sessionLog.length) { alert('No sessions to export.'); return; }
+  const headers = ['Topic #','Category','Topic','Date','Presenter','Attendees','Duration (min)'];
+  const rows = sessionLog.map(s => [s.id,s.category,s.topic,s.date,s.presenter,s.attendees,s.duration].map(v => `"${(v||'').toString().replace(/"/g,'""')}"`));
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'anaesthesia_teaching_log.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function clearLog() {
+  if (!confirm('Clear all session data? This cannot be undone.')) return;
+  sessionLog = [];
+  localStorage.removeItem('anaes_sessions');
+  renderHistory();
+}
+
+renderHistory();
+
+// Background anaesthesia icons
+(function() {
+  const icons = ['💉','💊','🩺','❤️','🫀','🔬','🩻','⏱️','📋','🧪','🩹','💉','💊','🩺','🫀'];
+  const container = document.getElementById('bgIcons');
+  const cols = Math.ceil(window.innerWidth / 160) + 1;
+  const rows = Math.ceil(window.innerHeight / 160) + 2;
+  const offsets = [0, 80, 40, 120, 20, 100, 60, 140];
+  let i = 0;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const span = document.createElement('span');
+      span.className = 'bg-icon';
+      span.textContent = icons[i % icons.length];
+      span.style.left = (c * 160 + offsets[(r + c) % offsets.length] % 80) + 'px';
+      span.style.top  = (r * 160 + offsets[(r * 2 + c) % offsets.length]) + 'px';
+      span.style.transform = `rotate(${(i * 37) % 60 - 30}deg)`;
+      span.style.fontSize = (2.2 + (i % 3) * 0.4) + 'rem';
+      container.appendChild(span);
+      i++;
+    }
+  }
+})();
+</script>
+</body>
+</html>
